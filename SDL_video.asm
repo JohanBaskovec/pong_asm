@@ -25,3 +25,37 @@
 %define SDL_WINDOWPOS_CENTERED         SDL_WINDOWPOS_CENTERED_DISPLAY(0)
 %define SDL_WINDOWPOS_ISCENTERED(X)    (((X)&0xFFFF0000) == SDL_WINDOWPOS_CENTERED_MASK)
 
+
+
+%define SDL_GL_RED_SIZE                         0
+%define SDL_GL_GREEN_SIZE                       1
+%define SDL_GL_BLUE_SIZE                        2
+%define SDL_GL_ALPHA_SIZE                       3
+%define SDL_GL_BUFFER_SIZE                      4
+%define SDL_GL_DOUBLEBUFFER                     5
+%define SDL_GL_DEPTH_SIZE                       6
+%define SDL_GL_STENCIL_SIZE                     7
+%define SDL_GL_ACCUM_RED_SIZE                   8
+%define SDL_GL_ACCUM_GREEN_SIZE                 9
+%define SDL_GL_ACCUM_BLUE_SIZE                  10
+%define SDL_GL_ACCUM_ALPHA_SIZE
+%define SDL_GL_STEREO
+%define SDL_GL_MULTISAMPLEBUFFERS
+%define SDL_GL_MULTISAMPLESAMPLES
+%define SDL_GL_ACCELERATED_VISUAL
+%define SDL_GL_RETAINED_BACKING
+%define SDL_GL_CONTEXT_MAJOR_VERSION            17
+%define SDL_GL_CONTEXT_MINOR_VERSION            18
+%define SDL_GL_CONTEXT_EGL                      19
+%define SDL_GL_CONTEXT_FLAGS                    20
+%define SDL_GL_CONTEXT_PROFILE_MASK             21
+%define SDL_GL_SHARE_WITH_CURRENT_CONTEXT
+%define SDL_GL_FRAMEBUFFER_SRGB_CAPABLE
+%define SDL_GL_CONTEXT_RELEASE_BEHAVIOR
+%define SDL_GL_CONTEXT_RESET_NOTIFICATION
+%define SDL_GL_CONTEXT_NO_ERROR
+
+
+%define SDL_GL_CONTEXT_PROFILE_CORE           0x0001
+%define SDL_GL_CONTEXT_PROFILE_COMPATIBILITY  0x0002
+%define SDL_GL_CONTEXT_PROFILE_ES             0x0004
