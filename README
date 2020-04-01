@@ -1,0 +1,10 @@
+## Vim
+
+### Replacing multiline comments
+%s/\/\*\*\_.\{-}\*\///y
+
+### Replacing single line comments
+%s/\/\*\_.\{-}\*\///
+
+### Add %define to every non-empty lines
+%s/^\(\S\)/%define \1/
