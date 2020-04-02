@@ -278,6 +278,21 @@ main:
     mov     ecx, GL_STATIC_DRAW
     call    glBufferData
 
+    ;void glVertexAttribPointer(GLuint index, GLint size, GLenum type,
+    ;                           GLboolean normalized, GLsizei stride,
+    ;                           const void * pointer);
+    mov     edi, [di_vertex_pos_2d_location]
+    mov     esi, 3
+    mov     edx, GL_FLOAT
+    mov     ecx, GL_FALSE
+    mov     r8d, 3 * GLfloat_size
+    mov     r9, NULL
+    call    glVertexAttribPointer
+
+    ;void glEnableVertexAttribArray(GLuint index);
+    mov     edi, [di_vertex_pos_2d_location]
+    call    glEnableVertexAttribArray
+
     ;void glGenBuffers(GLsizei n, GLuint * buffers);
     mov     edi, 1
     mov     rsi, dui_ibo
@@ -314,24 +329,9 @@ main:
     mov     edi, [dui_program_id]
     call    glUseProgram
 
-    ;void glEnableVertexAttribArray(GLuint index);
-    mov     edi, [di_vertex_pos_2d_location]
-    call    glEnableVertexAttribArray
-
     mov     edi, GL_ARRAY_BUFFER
     mov     esi, [dui_vbo]
     call    glBindBuffer
-
-    ;void glVertexAttribPointer(GLuint index, GLint size, GLenum type,
-    ;                           GLboolean normalized, GLsizei stride,
-    ;                           const void * pointer);
-    mov     edi, [di_vertex_pos_2d_location]
-    mov     esi, 3
-    mov     edx, GL_FLOAT
-    mov     ecx, GL_FALSE
-    mov     r8d, 3 * GLfloat_size
-    mov     r9, NULL
-    call    glVertexAttribPointer
 
     mov     edi, GL_ELEMENT_ARRAY_BUFFER
     mov     esi, [dui_ibo]
@@ -344,9 +344,6 @@ main:
     mov     edx, GL_UNSIGNED_INT
     mov     rcx, NULL
     call    glDrawElements
-
-    mov     edi, [di_vertex_pos_2d_location]
-    call    glDisableVertexAttribArray
 
     mov     rdi, NULL
     call    glUseProgram
