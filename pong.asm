@@ -19,7 +19,7 @@ extern  SDL_Init, SDL_Quit,\
 extern glewExperimental, glewInit
 
 ; OpenGL extern
-extern  glClear, glClearColor,\
+extern  glClear, glClearColor,glPolygonMode,\
         \
         glCreateProgram, glLinkProgram, glGetProgramiv, glUseProgram,\
         glDeleteProgram, glGetProgramInfoLog, glIsProgram,\
@@ -96,6 +96,8 @@ dfa_vertex_data dd  -0.5, -0.5, 0.0, \
 duia_index_data dd 0, 1, 2, 3
 
 ds_LVertexPos2D_var_name   dd "LVertexPos2D", 0
+
+db_wireframe db false
 
 segment .bss
 ; SDL_Event
@@ -375,13 +377,29 @@ main:
     je      .game_loop
     cmp     dword [d_sdl_event+SDL_Event.type],SDL_QUIT
     je      .quit_event
-    cmp     dword [d_sdl_event+SDL_Event.type],SDL_KEYDOWN
-    je      .key_down
+    cmp     dword [d_sdl_event+SDL_Event.type],SDL_KEYUP
+    je      .key_up
     jmp     .game_loop
-    .key_down:
-    cmp     dword [d_sdl_event+SDL_KeyboardEvent.keysym+SDL_Keysym.scancode],SDL_SCANCODE_ESCAPE
+    .key_up:
+    mov     edi, dword [d_sdl_event+SDL_KeyboardEvent.keysym+SDL_Keysym.scancode]
+    cmp     edi, SDL_SCANCODE_ESCAPE
     je      .quit_event
-
+    cmp     edi, SDL_SCANCODE_W
+    je      .pressed_w
+    jmp     .game_loop
+    .pressed_w:
+    cmp     byte [db_wireframe], byte false
+    je .switch_to_wireframe
+    mov     rdi, GL_FRONT_AND_BACK
+    mov     rsi, GL_FILL
+    call    glPolygonMode
+    mov     byte [db_wireframe], byte false
+    jmp     .game_loop
+    .switch_to_wireframe:
+    mov     rdi, GL_FRONT_AND_BACK
+    mov     rsi, GL_LINE
+    call    glPolygonMode
+    mov     byte [db_wireframe], byte true
     jmp     .game_loop
 
     .quit_event:
