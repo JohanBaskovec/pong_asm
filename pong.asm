@@ -24,11 +24,13 @@ extern  glClear, glClearColor,\
         glCreateProgram, glLinkProgram, glGetProgramiv, glUseProgram,\
         glDeleteProgram, glGetProgramInfoLog, glIsProgram,\
         \
+        glGenVertexArrays, glBindVertexArray,\
+        \
         glEnableVertexAttribArray, glVertexAttribPointer,\
         glGetAttribLocation, glDisableVertexAttribArray,\
         \
         glCompileShader, glCreateShader, glShaderSource, glGetShaderiv,\
-        glAttachShader, glIsShader, glGetShaderInfoLog,\
+        glAttachShader, glIsShader, glGetShaderInfoLog, glDeleteShader,\
         \
         glGenBuffers, glBindBuffers, glBufferData, glBindBuffer,\
         \
@@ -72,9 +74,9 @@ ds_log_program_info_none db `No program info available.\n\0`
 ds_log_glGetAttribLocation_error db `No variable named %s in glsl program.\n\0`
 
 ds_vertex_shader_source db `#version 130\n`,\
-    `in vec2 LVertexPos2D;\n`,\
+    `in vec3 LVertexPos2D;\n`,\
     `void main() {\n`,\
-    `   gl_Position = vec4( LVertexPos2D.x, LVertexPos2D.y, 0, 1 );\n`,\
+    `   gl_Position = vec4( LVertexPos2D.x, LVertexPos2D.y, LVertexPos2D.z, 1 );\n`,\
     `}\0`
 
 ds_fragment_shader_source db `#version 130\n`,\
@@ -128,6 +130,9 @@ dui_vbo resd 1
 
 ; GLuint
 dui_ibo resd 1
+
+; GLuint
+dui_vao resd 1
 
 ; GLint
 di_vertex_pos_2d_location resd 1
@@ -236,6 +241,12 @@ main:
     mov     edi, [dui_program_id]
     call    glLinkProgram
 
+    mov     rdi, [dui_fragment_shader]
+    call    glDeleteShader
+
+    mov     rdi, [dui_vertex_shader]
+    call    glDeleteShader
+
     ;void glGetProgramiv(GLuint program,
     ;                    GLenum pname,
     ;                    GLint *params);
@@ -257,6 +268,15 @@ main:
     mov     rsi, ds_LVertexPos2D_var_name
     je      .invalid_program_variable
     mov     [di_vertex_pos_2d_location], eax
+
+    ;void glGenVertexArrays(GLsizei n, GLuint *arrays);
+    mov     edi, 1
+    mov     rsi, dui_vao
+    call    glGenVertexArrays
+
+    ; The VAO stores the vertex attribute configurations
+    mov     edi, [dui_vao]
+    call    glBindVertexArray
 
     ;void glGenBuffers(GLsizei n, GLuint * buffers);
     mov     edi, 1
@@ -299,7 +319,7 @@ main:
     call    glGenBuffers
 
     ;void glBindBuffer(GLenum target, GLuint buffer);
-    mov     edi, GL_ARRAY_BUFFER
+    mov     edi, GL_ELEMENT_ARRAY_BUFFER
     mov     esi, [dui_ibo]
     call    glBindBuffer
 
@@ -307,11 +327,15 @@ main:
     ;                  GLsizeiptr size,
     ;                  const void * data,
     ;                  GLenum usage);
-    mov     edi, GL_ARRAY_BUFFER
+    mov     edi, GL_ELEMENT_ARRAY_BUFFER
     mov     rsi, 4 * GLuint_size
     mov     rdx, duia_index_data
     mov     ecx, GL_STATIC_DRAW
     call    glBufferData
+
+    ;Unbind the VAO, not needed anymore
+    mov     edi, dui_vao
+    call    glBindVertexArray
 
     .game_loop:
     ;void glClearColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
@@ -329,13 +353,8 @@ main:
     mov     edi, [dui_program_id]
     call    glUseProgram
 
-    mov     edi, GL_ARRAY_BUFFER
-    mov     esi, [dui_vbo]
-    call    glBindBuffer
-
-    mov     edi, GL_ELEMENT_ARRAY_BUFFER
-    mov     esi, [dui_ibo]
-    call    glBindBuffer
+    mov     edi, [dui_vao]
+    call    glBindVertexArray
 
     ;void glDrawElements(GLenum mode, GLsizei count, GLenum type,
     ;                    const void * indices)
