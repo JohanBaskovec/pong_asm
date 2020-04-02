@@ -86,7 +86,10 @@ ds_fragment_shader_source db `#version 130\n`,\
 df_one                              dd  1.0
 df_zero                             dd  0.0
 
-dfa_vertex_data dd  -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5
+dfa_vertex_data dd  -0.5, -0.5, 0.0, \
+                    0.5,  -0.5, 0.0,\
+                    0.5,  0.5,  0.0,\
+                    -0.5, 0.5,  0.0
 
 duia_index_data dd 0, 1, 2, 3
 
@@ -270,7 +273,7 @@ main:
     ;                  const void * data,
     ;                  GLenum usage);
     mov     edi, GL_ARRAY_BUFFER
-    mov     rsi, 2 * 4 * GLfloat_size
+    mov     rsi, 3 * 4 * GLfloat_size
     mov     rdx, dfa_vertex_data
     mov     ecx, GL_STATIC_DRAW
     call    glBufferData
@@ -323,10 +326,10 @@ main:
     ;                           GLboolean normalized, GLsizei stride,
     ;                           const void * pointer);
     mov     edi, [di_vertex_pos_2d_location]
-    mov     esi, 2
+    mov     esi, 3
     mov     edx, GL_FLOAT
     mov     ecx, GL_FALSE
-    mov     r8d, 2 * GLfloat_size
+    mov     r8d, 3 * GLfloat_size
     mov     r9, NULL
     call    glVertexAttribPointer
 
@@ -347,7 +350,6 @@ main:
 
     mov     rdi, NULL
     call    glUseProgram
-
     mov     rdi, [dp_window]
     call    SDL_GL_SwapWindow
 
