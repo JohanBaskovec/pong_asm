@@ -3,7 +3,7 @@
 %define NULL 0
 
 ; libc externs
-extern  malloc, free, puts, exit
+extern  malloc, free, puts, exit, printf
 
 ; SDL externs
 extern  SDL_Init, SDL_Quit,\
@@ -47,6 +47,7 @@ extern  glClear, glClearColor,glPolygonMode,\
 %include "SDL_render.asm"
 %include "SDL_opengl.asm"
 %include "glew.asm"
+%include "maths.asm"
 
 segment .data
 ds_log_sdl_init_error db `Unable to initialize SDL: %s\n\0`
@@ -99,6 +100,16 @@ ds_LVertexPos2D_var_name   dd "LVertexPos2D", 0
 
 db_wireframe db false
 
+%define radians_to_degrees(x) (x * (__float64__(180.0)/__float64__(3.14)))
+%define pi __float64__(3.141592653589793238462)
+
+di_r dq pi + __float64__(1.0)
+di_r2 dq ((__float64__(180.0)/__float64__(3.14)))
+;radians_to_degrees(__float64__(1.45))
+di_r3 dq 1.49
+
+ds_log_double db `%lf %lf\n\0`
+
 segment .bss
 ; SDL_Event
 d_sdl_event         resb    SDL_Event_max_size
@@ -147,6 +158,12 @@ global main
 main:
     enter   0,0
     ; here the stack is 16-bytes aligned (rsp ends with 0)
+
+    mov     rdi, ds_log_double
+    mov     rax, 2
+    movq    xmm0, [di_r2]
+    movq    xmm1, [di_r3]
+    call    printf
 
     ; int SDL_Init(Uint32 flags)
     mov     edi, SDL_INIT_VIDEO
