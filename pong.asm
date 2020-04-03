@@ -74,9 +74,11 @@ ds_log_glGetAttribLocation_error db `No variable named %s in glsl program.\n\0`
 
 ds_vertex_shader_source db `#version 130\n`,\
     `in vec3 LVertexPos2D;\n`,\
-    `uniform mat4 transform;\n`,\
+    `uniform mat4 model;\n`,\
+    `uniform mat4 view;\n`,\
+    `uniform mat4 projection;\n`,\
     `void main() {\n`,\
-    `   gl_Position = transform * vec4(LVertexPos2D, 1.0f);\n`,\
+    `   gl_Position = projection * view * model * vec4(LVertexPos2D, 1.0f);\n`,\
     `}\0`
 
 ds_fragment_shader_source db `#version 130\n`,\
@@ -88,21 +90,39 @@ ds_fragment_shader_source db `#version 130\n`,\
 df_one                              dd  1.0
 df_zero                             dd  0.0
 
+; 3D model of paddle
 dfa_vertex_data dd  -0.5, -0.5, 0.0, \
                     0.5,  -0.5, 0.0,\
                     0.5,  0.5,  0.0,\
                     -0.5, 0.5,  0.0
-
 duia_index_data dd 0, 1, 2, 3
 
+; world space position
+dfa_paddle_1_position dd 0.0, 0.0, 0.0
+
+dfa_camera_position dd 0.0, 0.0, -6.0
+
+di_screen_width dd 800
+di_screen_height dd 600
+df_screen_width dd 800.0
+df_screen_height dd 600.0
+
 ds_LVertexPos2D_var_name   dd "LVertexPos2D", 0
-ds_transform_var_name   dd "transform", 0
+ds_model_var_name   dd "model", 0
+ds_projection_var_name   dd "projection", 0
+ds_view_var_name   dd "view", 0
 
 db_wireframe db false
 
 %define pi __float64__(3.141592653589793238462)
 
 dfa_translate_vec dd 0.4, 0.5, 0.0
+
+df_z_near dd 0.1
+df_z_far dd 100.0
+
+; GLfloat
+df_fov dd 45.0
 
 segment .bss
 ; SDL_Event
@@ -145,10 +165,27 @@ dui_vao resd 1
 di_vertex_pos_2d_location resd 1
 
 ; GLint
-di_transform_location resd 1
+di_shader_projection_variable_location resd 1
+
+; GLint
+di_shader_view_variable_location resd 1
+
+; GLint
+di_shader_model_variable_location resd 1
 
 ; GLfloat*
-dfa_transform_mat resd 16
+dfa_view_mat resd 16
+
+; GLfloat*
+dfa_projection_mat resd 16
+
+; GLfloat*
+dfa_model_mat resd 16
+
+; float
+df_screen_ratio resd 1
+
+df_fov_rad resd 1
 
 segment .text
 
@@ -157,6 +194,14 @@ global main
 main:
     enter   0,0
     ; here the stack is 16-bytes aligned (rsp ends with 0)
+
+    movss   xmm0, [df_screen_width]
+    divss   xmm0, [df_screen_height]
+    movss   [df_screen_ratio], xmm0
+
+    movss   xmm0, [df_fov]
+    degrees_to_radiansf
+    movss   [df_fov_rad], xmm0
 
     ; int SDL_Init(Uint32 flags)
     mov     edi, SDL_INIT_VIDEO
@@ -216,6 +261,9 @@ main:
     ;void glEnable(GLenum cap);
     mov     rdi, GL_DEBUG_OUTPUT
     call    glEnable
+
+    ;mov     rdi, GL_DEPTH_TEST
+    ;call    glEnable
 
     ;void glDebugMessageCallback(DEBUGPROC callback, const void * userParam);
     mov     rdi, opengl_error_callback
@@ -285,26 +333,21 @@ main:
     je      .invalid_program_variable
     mov     [di_vertex_pos_2d_location], eax
 
-    mov     rdi, dfa_transform_mat
-    call    mat4f_identity
-
-    mov     rdi, dfa_transform_mat
-    mov     rsi, dfa_translate_vec
-    call    mat4f_vec3_translate
-
     ;GLint glGetUniformLocation(GLuint program, const GLchar *name);
     mov     edi, [dui_program_id]
-    mov     rsi, ds_transform_var_name
+    mov     rsi, ds_model_var_name
     call    glGetUniformLocation
-    mov     [di_transform_location], eax
+    mov     [di_shader_model_variable_location], eax
 
-    ;void glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose,
-    ;                        const GLfloat *value);
-    mov     edi, [di_transform_location]
-    mov     esi, 1
-    mov     edx, false
-    mov     rcx, dfa_transform_mat
-    call    glUniformMatrix4fv
+    mov     edi, [dui_program_id]
+    mov     rsi, ds_view_var_name
+    call    glGetUniformLocation
+    mov     [di_shader_view_variable_location], eax
+
+    mov     edi, [dui_program_id]
+    mov     rsi, ds_projection_var_name
+    call    glGetUniformLocation
+    mov     [di_shader_projection_variable_location], eax
 
     ;void glGenVertexArrays(GLsizei n, GLuint *arrays);
     mov     edi, 1
@@ -390,8 +433,51 @@ main:
     mov     edi, [dui_program_id]
     call    glUseProgram
 
+    ; create and set the view matrix
+    mov     rdi, dfa_view_mat
+    call    mat4f_identity
+
+    mov     rdi, dfa_view_mat
+    mov     rsi, dfa_camera_position
+    call    mat4f_vec3_translate
+
+    mov     edi, [di_shader_view_variable_location]
+    mov     esi, 1
+    mov     edx, false
+    mov     rcx, dfa_view_mat
+    call    glUniformMatrix4fv
+
+    ; projection matrix
+    mov     rdi, dfa_projection_mat
+    movss   xmm0, [df_fov_rad]
+    movss   xmm1, [df_screen_ratio]
+    movss   xmm2, [df_z_near]
+    movss   xmm3, [df_z_far]
+    call    mat4f_perspective
+
+    mov     edi, [di_shader_projection_variable_location]
+    mov     esi, 1
+    mov     edx, false
+    mov     rcx, dfa_projection_mat
+    call    glUniformMatrix4fv
+
     mov     edi, [dui_vao]
     call    glBindVertexArray
+
+    ; model matrix (the position of the paddle in the world)
+    mov     rdi, dfa_model_mat
+    call    mat4f_identity
+
+    mov     rdi, dfa_model_mat
+    mov     rsi, dfa_paddle_1_position
+    call    mat4f_vec3_translate
+
+    mov     edi, [di_shader_model_variable_location]
+    mov     esi, 1
+    mov     edx, false
+    mov     rcx, dfa_model_mat
+    call    glUniformMatrix4fv
+
 
     ;void glDrawElements(GLenum mode, GLsizei count, GLenum type,
     ;                    const void * indices)
