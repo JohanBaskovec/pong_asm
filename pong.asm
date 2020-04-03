@@ -1,6 +1,4 @@
-%define true 1
-%define false 0
-%define NULL 0
+%include "defines.asm"
 
 ; libc externs
 extern  malloc, free, puts, exit, printf
@@ -38,7 +36,7 @@ extern  glClear, glClearColor,glPolygonMode,\
         \
         glEnable,\
         \
-        glDebugMessageCallback
+        glDebugMessageCallback, glGetUniformLocation, glUniformMatrix4fv
 
 %include "SDL.asm"
 %include "SDL_events.asm"
@@ -76,8 +74,9 @@ ds_log_glGetAttribLocation_error db `No variable named %s in glsl program.\n\0`
 
 ds_vertex_shader_source db `#version 130\n`,\
     `in vec3 LVertexPos2D;\n`,\
+    `uniform mat4 transform;\n`,\
     `void main() {\n`,\
-    `   gl_Position = vec4( LVertexPos2D.x, LVertexPos2D.y, LVertexPos2D.z, 1 );\n`,\
+    `   gl_Position = transform * vec4(LVertexPos2D, 1.0f);\n`,\
     `}\0`
 
 ds_fragment_shader_source db `#version 130\n`,\
@@ -97,18 +96,13 @@ dfa_vertex_data dd  -0.5, -0.5, 0.0, \
 duia_index_data dd 0, 1, 2, 3
 
 ds_LVertexPos2D_var_name   dd "LVertexPos2D", 0
+ds_transform_var_name   dd "transform", 0
 
 db_wireframe db false
 
-%define radians_to_degrees(x) (x * (__float64__(180.0)/__float64__(3.14)))
 %define pi __float64__(3.141592653589793238462)
 
-di_r dq pi + __float64__(1.0)
-di_r2 dq ((__float64__(180.0)/__float64__(3.14)))
-;radians_to_degrees(__float64__(1.45))
-di_r3 dq 1.49
-
-ds_log_double db `%lf %lf\n\0`
+dfa_translate_vec dd 0.4, 0.5, 0.0
 
 segment .bss
 ; SDL_Event
@@ -150,6 +144,11 @@ dui_vao resd 1
 ; GLint
 di_vertex_pos_2d_location resd 1
 
+; GLint
+di_transform_location resd 1
+
+; GLfloat*
+dfa_transform_mat resd 16
 
 segment .text
 
@@ -158,12 +157,6 @@ global main
 main:
     enter   0,0
     ; here the stack is 16-bytes aligned (rsp ends with 0)
-
-    mov     rdi, ds_log_double
-    mov     rax, 2
-    movq    xmm0, [di_r2]
-    movq    xmm1, [di_r3]
-    call    printf
 
     ; int SDL_Init(Uint32 flags)
     mov     edi, SDL_INIT_VIDEO
@@ -266,6 +259,10 @@ main:
     mov     rdi, [dui_vertex_shader]
     call    glDeleteShader
 
+    ;void glUseProgram(GLuint program);
+    mov     edi, [dui_program_id]
+    call    glUseProgram
+
     ;void glGetProgramiv(GLuint program,
     ;                    GLenum pname,
     ;                    GLint *params);
@@ -287,6 +284,27 @@ main:
     mov     rsi, ds_LVertexPos2D_var_name
     je      .invalid_program_variable
     mov     [di_vertex_pos_2d_location], eax
+
+    mov     rdi, dfa_transform_mat
+    call    mat4f_identity
+
+    mov     rdi, dfa_transform_mat
+    mov     rsi, dfa_translate_vec
+    call    mat4f_vec3_translate
+
+    ;GLint glGetUniformLocation(GLuint program, const GLchar *name);
+    mov     edi, [dui_program_id]
+    mov     rsi, ds_transform_var_name
+    call    glGetUniformLocation
+    mov     [di_transform_location], eax
+
+    ;void glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose,
+    ;                        const GLfloat *value);
+    mov     edi, [di_transform_location]
+    mov     esi, 1
+    mov     edx, false
+    mov     rcx, dfa_transform_mat
+    call    glUniformMatrix4fv
 
     ;void glGenVertexArrays(GLsizei n, GLuint *arrays);
     mov     edi, 1

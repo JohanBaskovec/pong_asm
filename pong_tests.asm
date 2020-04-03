@@ -13,4 +13,5 @@ global main
 test_suite
     call    test_radians_to_degrees
     call    test_degrees_to_radians
+    call    test_mat4f_vec3_translate
 end_test_suite
