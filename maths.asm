@@ -8,6 +8,6 @@ dd_degrees_to_radians_ratio dq 0.0174532925
 %define radians_to_degrees mulsd   xmm0, [dd_radians_to_degrees_ratio]
 
 ; inline double degrees_to_radians(double a)
-%define degrees_to_radians mulsd  xmm0, degrees_to_radians_ratio
+%define degrees_to_radians mulsd  xmm0, [dd_degrees_to_radians_ratio]
 
 
