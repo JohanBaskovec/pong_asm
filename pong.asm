@@ -18,25 +18,17 @@ extern glewExperimental, glewInit
 
 ; OpenGL extern
 extern  glClear, glClearColor,glPolygonMode,\
-        \
         glCreateProgram, glLinkProgram, glGetProgramiv, glUseProgram,\
         glDeleteProgram, glGetProgramInfoLog, glIsProgram,\
-        \
         glGenVertexArrays, glBindVertexArray,\
-        \
         glEnableVertexAttribArray, glVertexAttribPointer,\
         glGetAttribLocation, glDisableVertexAttribArray,\
-        \
         glCompileShader, glCreateShader, glShaderSource, glGetShaderiv,\
         glAttachShader, glIsShader, glGetShaderInfoLog, glDeleteShader,\
-        \
         glGenBuffers, glBindBuffers, glBufferData, glBindBuffer,\
-        \
-        glDrawElements,\
-        \
-        glEnable,\
-        \
-        glDebugMessageCallback, glGetUniformLocation, glUniformMatrix4fv
+        glDrawElements, glEnable,\
+        glDebugMessageCallback, glGetUniformLocation, glUniformMatrix4fv,\
+        glViewport
 
 %include "SDL.asm"
 %include "SDL_events.asm"
@@ -237,8 +229,8 @@ main:
     mov     rdi, ds_window_title        ; title
     mov     esi, SDL_WINDOWPOS_CENTERED ; x
     mov     edx, SDL_WINDOWPOS_CENTERED ; y
-    mov     ecx, 600                    ; w
-    mov     r8d, 600                    ; h
+    mov     ecx, [di_screen_width]      ; w
+    mov     r8d, [di_screen_height]     ; h
     mov     r9d, SDL_WINDOW_OPENGL      ; flags
     call    SDL_CreateWindow
 
@@ -262,8 +254,14 @@ main:
     mov     rdi, GL_DEBUG_OUTPUT
     call    glEnable
 
-    ;mov     rdi, GL_DEPTH_TEST
-    ;call    glEnable
+    mov     rdi, GL_DEPTH_TEST
+    call    glEnable
+
+    mov     edi, 0
+    mov     esi, 0
+    mov     edx, [di_screen_width]
+    mov     ecx, [di_screen_height]
+    call    glViewport
 
     ;void glDebugMessageCallback(DEBUGPROC callback, const void * userParam);
     mov     rdi, opengl_error_callback
@@ -354,14 +352,14 @@ main:
     mov     rsi, dui_vao
     call    glGenVertexArrays
 
-    ; The VAO stores the vertex attribute configurations
-    mov     edi, [dui_vao]
-    call    glBindVertexArray
-
     ;void glGenBuffers(GLsizei n, GLuint * buffers);
     mov     edi, 1
     mov     rsi, dui_vbo
     call    glGenBuffers
+
+    ; The VAO stores the vertex attribute configurations
+    mov     edi, [dui_vao]
+    call    glBindVertexArray
 
     ;void glBindBuffer(GLenum target, GLuint buffer);
     mov     edi, GL_ARRAY_BUFFER
@@ -414,7 +412,7 @@ main:
     call    glBufferData
 
     ;Unbind the VAO, not needed anymore
-    mov     edi, dui_vao
+    mov     edi, 0
     call    glBindVertexArray
 
     .game_loop:
@@ -426,7 +424,7 @@ main:
     call    glClearColor
 
     ;void glClear(GLbitfield mask);
-    mov     rdi, GL_COLOR_BUFFER_BIT
+    mov     rdi, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT
     call    glClear
 
     ;void glUseProgram(GLuint program);
@@ -477,7 +475,6 @@ main:
     mov     edx, false
     mov     rcx, dfa_model_mat
     call    glUniformMatrix4fv
-
 
     ;void glDrawElements(GLenum mode, GLsizei count, GLenum type,
     ;                    const void * indices)
